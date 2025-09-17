@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Journey Time Prediction Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #f0f6fc;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #8b949e;
+            font-size: 1rem;
+        }
+
+        .form-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #f0f6fc;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background: #2ea043;
+        }
+
+        .btn:disabled {
+            background: #484f58;
+            cursor: not-allowed;
+        }
+
+        .workflow-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .workflow-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workflow-title {
+            font-weight: 600;
+            color: #f0f6fc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workflow-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-running {
+            background: rgba(255, 191, 0, 0.1);
+            color: #f1e05a;
+            border: 1px solid rgba(255, 191, 0, 0.2);
+        }
+
+        .status-success {
+            background: rgba(35, 134, 54, 0.1);
+            color: #7c3aed;
+            border: 1px solid rgba(35, 134, 54, 0.2);
+        }
+
+        .status-error {
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.2);
+        }
+
+        .workflow-body {
+            padding: 20px;
+        }
+
+        .progress-section {
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-title {
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .progress-count {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #238636, #2ea043);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-details {
+            margin-top: 16px;
+        }
+
+        .progress-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            padding: 16px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #8b949e;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #58a6ff;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-left: 2px solid #21262d;
+            padding-left: 16px;
+            margin-left: 8px;
+            position: relative;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 14px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #21262d;
+        }
+
+        .step.running {
+            border-left-color: #f1e05a;
+        }
+
+        .step.running::before {
+            background: #f1e05a;
+            animation: pulse 1.5s infinite;
+        }
+
+        .step.success {
+            border-left-color: #238636;
+        }
+
+        .step.success::before {
+            background: #238636;
+        }
+
+        .step.error {
+            border-left-color: #f85149;
+        }
+
+        .step.error::before {
+            background: #f85149;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 500;
+            color: #f0f6fc;
+            margin-bottom: 4px;
+        }
+
+        .step-detail {
+            color: #8b949e;
+            font-size: 14px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        .step-time {
+            color: #8b949e;
+            font-size: 12px;
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+
+        .results-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #30363d;
+            border-top: 2px solid #f1e05a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+
+        .success-icon {
+            color: #238636;
+        }
+
+        .error-icon {
+            color: #f85149;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Journey Time Prediction Engine</h1>
+            <p>Select a date range to analyze delivery journeys from sql_data_backup table</p>
+        </div>
+
+        <div class="form-container">
+            <form id="predictionForm">
+                <div class="form-group">
+                    <label for="dateFrom">From Date</label>
+                    <input type="date" id="dateFrom" name="date_from" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dateTo">To Date</label>
+                    <input type="date" id="dateTo" name="date_to" required>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">
+                    Start Prediction
+                </button>
+            </form>
+        </div>
+
+        <div class="workflow-container" id="workflowContainer">
+            <div class="workflow-header">
+                <div class="workflow-title">
+                    <span class="icon" id="workflowIcon">⚡</span>
+                    <span>Journey Prediction Workflow</span>
+                </div>
+                <div class="workflow-status" id="workflowStatus">Running</div>
+            </div>
+            
+            <div class="workflow-body">
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <div class="progress-title">Overall Progress</div>
+                        <div class="progress-count" id="progressCount">0 / 0</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-details">
+                        <div class="progress-metrics" id="progressMetrics">
+                            <div class="metric">
+                                <span class="metric-label">Journeys Found:</span>
+                                <span class="metric-value" id="journeysFound">0</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Processing Time:</span>
+                                <span class="metric-value" id="processingTime">0s</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">ETA:</span>
+                                <span class="metric-value" id="estimatedTime">Calculating...</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Success Rate:</span>
+                                <span class="metric-value" id="successRate">0%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Avg Time/Journey:</span>
+                                <span class="metric-value" id="avgTime">0s</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Saved Predictions:</span>
+                                <span class="metric-value" id="savedCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="stepsContainer">
+                    <!-- Steps will be dynamically added here -->
+                </div>
+
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <div class="results-grid" id="resultsGrid">
+                        <!-- Results will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates - from 7 days ago to today
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            
+            document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+
+            // Handle form submission
+            document.getElementById('predictionForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                startPrediction();
+            });
+        });
+
+        function startPrediction() {
+            const form = document.getElementById('predictionForm');
+            const formData = new FormData(form);
+            const dateFrom = formData.get('date_from');
+            const dateTo = formData.get('date_to');
+
+            // Validate date range
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                alert('From date must be before or equal to To date');
+                return;
+            }
+
+            // Prepare the request data
+            const requestData = {
+                date_from: dateFrom,
+                date_to: dateTo
+            };
+
+            // Show workflow container
+            document.getElementById('workflowContainer').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+            
+            // Reset workflow state
+            resetWorkflow();
+            
+            // Start the prediction process
+            executeWorkflow(requestData);
+        }
+
+        function resetWorkflow() {
+            const workflowStatus = document.getElementById('workflowStatus');
+            const workflowIcon = document.getElementById('workflowIcon');
+            const progressFill = document.getElementById('progressFill');
+            const progressCount = document.getElementById('progressCount');
+            const stepsContainer = document.getElementById('stepsContainer');
+            const resultsSection = document.getElementById('resultsSection');
+
+            workflowStatus.className = 'workflow-status status-running';
+            workflowStatus.textContent = 'Running';
+            workflowIcon.innerHTML = '<div class="spinner"></div>';
+            progressFill.style.width = '0%';
+            progressCount.textContent = '0 / 0';
+            stepsContainer.innerHTML = '';
+            resultsSection.style.display = 'none';
+
+            // Reset metrics
+            updateMetrics({
+                journeysFound: 0,
+                processingTime: 0,
+                avgTime: 0,
+                successRate: 0,
+                savedCount: 0,
+                eta: 'Calculating...'
+            });
+        }
+
+        async function executeWorkflow(requestData) {
+            const steps = [
+                { id: 'fetch', title: 'Fetching journey data', detail: 'Querying sql_data_backup table for date range' },
+                { id: 'extract', title: 'Extracting journeys', detail: 'Processing and grouping journey data' },
+                { id: 'cache', title: 'Preloading caches', detail: 'Optimizing database queries for faster processing' },
+                { id: 'predict', title: 'Running predictions', detail: 'Calculating time predictions for each journey' },
+                { id: 'save', title: 'Saving results', detail: 'Storing predictions in database' }
+            ];
+
+            // Create step elements
+            steps.forEach(step => {
+                addStep(step.id, step.title, step.detail, 'pending');
+            });
+
+            try {
+                // Update steps to show progress
+                updateStep('fetch', 'running', 'Querying sql_data_backup table for date range');
+                updateProgress(10, '1 / 5');
+
+                // Make the prediction request
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                updateStep('fetch', 'success', 'Journey data fetched successfully');
+                updateStep('extract', 'running', 'Processing and grouping journey data');
+                updateProgress(25, '2 / 5');
+
+                updateStep('extract', 'success', 'Journey data extracted');
+                updateStep('cache', 'running', 'Optimizing database queries for faster processing');
+                updateProgress(40, '3 / 5');
+
+                updateStep('cache', 'success', 'Cache preloading completed');
+                updateStep('predict', 'running', 'Calculating time predictions for each journey');
+                updateProgress(60, '4 / 5');
+
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                updateStep('predict', 'success', 'Predictions completed');
+                updateStep('save', 'running', 'Storing predictions in database');
+                updateProgress(80, '5 / 5');
+
+                updateStep('save', 'success', 'Results saved to database');
+                updateProgress(100, '5 / 5');
+
+                // Update metrics
+                const metrics = result.metrics || {};
+                updateMetrics({
+                    journeysFound: result.journey_count,
+                    processingTime: metrics.total_processing_time || 0,
+                    avgTime: metrics.average_time_per_journey || 0,
+                    successRate: metrics.success_rate || 100,
+                    savedCount: result.saved_predictions,
+                    eta: 'Completed'
+                });
+
+                // Update overall status
+                const workflowStatus = document.getElementById('workflowStatus');
+                const workflowIcon = document.getElementById('workflowIcon');
+                workflowStatus.className = 'workflow-status status-success';
+                workflowStatus.textContent = 'Completed';
+                workflowIcon.innerHTML = '✓';
+
+                // Show results
+                showResults(result);
+
+                // Re-enable submit button
+                document.getElementById('submitBtn').disabled = false;
+
+            } catch (error) {
+                console.error('Prediction failed:', error);
+
+                // Update failed step
+                const runningSteps = document.querySelectorAll('.step.running');
+                runningSteps.forEach(step => {
+                    const stepId = step.getAttribute('data-step-id');
+                    updateStep(stepId, 'error', `Failed: ${error.message}`);
+                });
+
+                // Update overall status
+                const workflowStatus = document.getElementById('workflowStatus');
+                const workflowIcon = document.getElementById('workflowIcon');
+                workflowStatus.className = 'workflow-status status-error';
+                workflowStatus.textContent = 'Failed';
+                workflowIcon.innerHTML = '✗';
+
+                // Re-enable submit button
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+
+        function updateMetrics(metrics) {
+            if (metrics.journeysFound !== undefined) {
+                document.getElementById('journeysFound').textContent = metrics.journeysFound;
+            }
+            if (metrics.processingTime !== undefined) {
+                document.getElementById('processingTime').textContent = `${metrics.processingTime}s`;
+            }
+            if (metrics.avgTime !== undefined) {
+                document.getElementById('avgTime').textContent = `${metrics.avgTime}s`;
+            }
+            if (metrics.successRate !== undefined) {
+                document.getElementById('successRate').textContent = `${metrics.successRate}%`;
+            }
+            if (metrics.savedCount !== undefined) {
+                document.getElementById('savedCount').textContent = metrics.savedCount;
+            }
+            if (metrics.eta !== undefined) {
+                document.getElementById('estimatedTime').textContent = metrics.eta;
+            }
+        }
+
+        function addStep(id, title, detail, status) {
+            const stepsContainer = document.getElementById('stepsContainer');
+            const stepElement = document.createElement('div');
+            stepElement.className = `step ${status}`;
+            stepElement.setAttribute('data-step-id', id);
+            stepElement.innerHTML = `
+                <div class="step-content">
+                    <div class="step-title">${title}</div>
+                    <div class="step-detail">${detail}</div>
+                </div>
+                <div class="step-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            stepsContainer.appendChild(stepElement);
+        }
+
+        function updateStep(id, status, detail) {
+            const stepElement = document.querySelector(`[data-step-id="${id}"]`);
+            if (stepElement) {
+                stepElement.className = `step ${status}`;
+                const detailElement = stepElement.querySelector('.step-detail');
+                const timeElement = stepElement.querySelector('.step-time');
+                detailElement.textContent = detail;
+                timeElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        function updateProgress(percentage, count) {
+            const progressFill = document.getElementById('progressFill');
+            const progressCount = document.getElementById('progressCount');
+            progressFill.style.width = `${percentage}%`;
+            progressCount.textContent = count;
+        }
+
+        function showResults(result) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsGrid = document.getElementById('resultsGrid');
+            
+            const metrics = result.metrics || {};
+            const stats = [
+                { value: result.journey_count, label: 'Total Journeys' },
+                { value: result.summary.successful_predictions, label: 'Successful Predictions' },
+                { value: result.summary.failed_predictions, label: 'Failed Predictions' },
+                { value: result.summary.predictions_saved, label: 'Saved to Database' },
+                { value: `${metrics.total_processing_time || 0}s`, label: 'Total Processing Time' },
+                { value: `${metrics.average_time_per_journey || 0}s`, label: 'Avg Time per Journey' },
+                { value: `${metrics.success_rate || 100}%`, label: 'Success Rate' },
+                { value: metrics.date_range || 'N/A', label: 'Date Range Processed' }
+            ];
+
+            resultsGrid.innerHTML = '';
+            stats.forEach(stat => {
+                const statCard = document.createElement('div');
+                statCard.className = 'stat-card';
+                statCard.innerHTML = `
+                    <div class="stat-value">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                `;
+                resultsGrid.appendChild(statCard);
+            });
+
+            resultsSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
